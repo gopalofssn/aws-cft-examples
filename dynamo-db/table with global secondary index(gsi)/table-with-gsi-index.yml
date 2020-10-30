@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Dynamo DB Table with Index
+
+Parameters:
+  App: {Default: poker, Type: String}
+  Sub: {Default: online, Type: String}
+  Env:
+    AllowedValues: [dev, test, accp, prod]
+    Default: dev
+    Description: environment
+    Type: String
+    
+Resources:
+  pokerTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      Tags:
+        - Key: App
+          Value: !Ref App
+      TableName: 
+        Fn::Join:
+          - '-'
+          - - {Ref: Sub}
+            - {Ref: App}
+            - {Ref: Env}
+            - 'table'
+      AttributeDefinitions:
+        - AttributeName: 'connectionId'
+          AttributeType: 'S'
+        - AttributeName: 'userName'
+          AttributeType: 'S'
+        - AttributeName: 'sessionId'
+          AttributeType: 'S'  
+      KeySchema:
+        - AttributeName: 'connectionId'
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "userName-sessionId-index"
+          KeySchema:
+            -  
+              AttributeName: "userName"
+              KeyType: "HASH"
+            -
+              AttributeName: "sessionId"
+              KeyType: "RANGE"  
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
