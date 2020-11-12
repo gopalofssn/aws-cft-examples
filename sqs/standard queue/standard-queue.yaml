@@ -60,7 +60,7 @@ Resources:
               - "DataLakeMessageIngestQueue"
               - "QueueName"
       Statistic: "Maximum"
-      Period: "300"
+      Period: "60"
       DatapointsToAlarm: "1"
       EvaluationPeriods: "1"
       Threshold: "2"
@@ -68,4 +68,6 @@ Resources:
       AlarmActions: 
         - !Ref DataLakeSNSAlarmTopic
       InsufficientDataActions: 
+        - !Ref DataLakeSNSAlarmTopic
+      OKActions: 
         - !Ref DataLakeSNSAlarmTopic
