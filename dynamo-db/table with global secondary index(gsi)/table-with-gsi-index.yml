@@ -6,7 +6,7 @@ Parameters:
   App: {Default: poker, Type: String}
   Sub: {Default: online, Type: String}
   Env:
-    AllowedValues: [dev, test, accp, prod]
+    AllowedValues: [dev, test, stage, prod]
     Default: dev
     Description: environment
     Type: String

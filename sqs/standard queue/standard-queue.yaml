@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Serverless Application Model for creating sqs standard queue, SNS with alarm config.
+
+Parameters:
+  AppName: {Default: data-lake, Type: String}
+  CompanyName: {Default: self, Type: String}
+  ProfileType:
+    AllowedValues: [dev, test, stage, prod]
+    ConstraintDescription: choose profile type.
+    Default: prod
+    Description: profile text type
+    Type: String
+  DeploymentTypeName: 
+    AllowedValues: [blue, green]
+    ConstraintDescription: choose stage type.
+    Default: blue
+    Description: Stage Text type
+    Type: String
+  DataLakeMessageIngestQueueName: {Default: data-lake-ingest-queue, Type: String}
+  DataLakeSNSAlarmTopicName: {Default: data-lake-alarm-topic, Type: String}
+  DataLakeTeamGroupEmailAddress: {Default: gopalofssn@gmail.com, Type: String}
+  
+Resources:
+
+#Create sns topic with email sub
+  DataLakeSNSAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+        Subscription:
+            -
+             Endpoint: !Ref DataLakeTeamGroupEmailAddress
+             Protocol: "email"
+        TopicName:
+          Fn::Join:
+          - '-'
+          - - {Ref: CompanyName}
+            - {Ref: AppName}
+            - {Ref: ProfileType}
+            - {Ref: DeploymentTypeName}
+            
+  DataLakeMessageIngestQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref DataLakeMessageIngestQueueName
+      VisibilityTimeout: 60
+      
+  DataLakeMessageIngestQueueAlarm: 
+    Type: AWS::CloudWatch::Alarm
+    Properties: 
+      AlarmDescription: "Email via SNS if queue depth reach to more than 50 messages"
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions: 
+        - 
+          Name: "QueueName"
+          Value: 
+            Fn::GetAtt: 
+              - "DataLakeMessageIngestQueue"
+              - "QueueName"
+      Statistic: "Maximum"
+      Period: "300"
+      DatapointsToAlarm: "1"
+      EvaluationPeriods: "1"
+      Threshold: "2"
+      ComparisonOperator: "GreaterThanThreshold"
+      AlarmActions: 
+        - !Ref DataLakeSNSAlarmTopic
+      InsufficientDataActions: 
+        - !Ref DataLakeSNSAlarmTopic
