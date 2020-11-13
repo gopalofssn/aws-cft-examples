@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Serverless Application Model for creating sqs fifo queue & subscribe it to FIFO SNS topic.
+
+Parameters:
+  OrderSequenceFIFOQueueName: {Default: order-sequence-fifo-queue.fifo, Type: String}
+  OrderSequenceFIFOSNSTopicName: {Default: order-sequence-topic.fifo, Type: String}
+  
+Resources:
+
+  #OrderSequenceStackLevelTags:
+   # Type: AWS::CloudFormation::Stack
+    #Properties:
+     # Tags:
+      #- Key: App
+       # Value: Order-Sequence
+      #TemplateURL: https://s3-external-1.amazonaws.com/cf-templates-hltf4if2w9fs-us-east-1/2020318HkN-fifo-queue.yaml
+  
+  OrderSequenceFIFOQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref OrderSequenceFIFOQueueName
+      VisibilityTimeout: 60
+      ContentBasedDeduplication: false
+      FifoQueue: true
+
+  OrderSequenceFIFOSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+        TopicName: !Ref OrderSequenceFIFOSNSTopicName
+        ContentBasedDeduplication: false
+        FifoTopic: true
+        
+  OrderSequenceSNSSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      Protocol: sqs
+      Endpoint: !GetAtt 
+        - OrderSequenceFIFOQueue
+        - Arn
+      Region: !Ref 'AWS::Region'
+      TopicArn: !Ref OrderSequenceFIFOSNSTopic
+      
+  OrderSequenceFIFOQueuePolicy: 
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Ref OrderSequenceFIFOQueue
+      PolicyDocument: 
+        Statement: 
+           - Sid: Allow-OrderSequenceFIFOSNSTopic-SendMessage-To-OrderSequenceFIFOQueue
+             Action: 
+               - 'sqs:SendMessage' 
+             Effect: Allow
+             Resource: !GetAtt OrderSequenceFIFOQueue.Arn
+             Principal:  
+               AWS: 
+                 - '*' 
+             Condition: 
+               ArnLike: 
+                 aws:SourceArn: !Ref OrderSequenceFIFOSNSTopic       

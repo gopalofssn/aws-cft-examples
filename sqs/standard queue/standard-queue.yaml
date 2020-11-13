@@ -60,7 +60,7 @@ Resources:
               - "DataLakeMessageIngestQueue"
               - "QueueName"
       Statistic: "Maximum"
-      Period: "60"
+      Period: "300"
       DatapointsToAlarm: "1"
       EvaluationPeriods: "1"
       Threshold: "2"
