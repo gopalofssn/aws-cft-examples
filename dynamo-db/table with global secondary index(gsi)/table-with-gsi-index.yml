@@ -24,36 +24,7 @@ Resources:
           - - {Ref: Sub}
             - {Ref: App}
             - {Ref: Env}
-            - 'table'
-      AttributeDefinitions:
-        - AttributeName: 'connectionId'
-          AttributeType: 'S'
-        - AttributeName: 'userName'
-          AttributeType: 'S'
-        - AttributeName: 'sessionId'
-          AttributeType: 'S'  
+            - 'table' 
       KeySchema:
         - AttributeName: 'connectionId'
           KeyType: HASH
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "userName-sessionId-index"
-          KeySchema:
-            -  
-              AttributeName: "userName"
-              KeyType: "HASH"
-            -
-              AttributeName: "sessionId"
-              KeyType: "RANGE"  
-          Projection:
-            ProjectionType: "ALL"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: '5'
-        WriteCapacityUnits: '5'
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true

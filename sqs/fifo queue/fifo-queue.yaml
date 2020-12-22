@@ -8,14 +8,6 @@ Parameters:
   
 Resources:
 
-  #OrderSequenceStackLevelTags:
-   # Type: AWS::CloudFormation::Stack
-    #Properties:
-     # Tags:
-      #- Key: App
-       # Value: Order-Sequence
-      #TemplateURL: https://s3-external-1.amazonaws.com/cf-templates-hltf4if2w9fs-us-east-1/2020318HkN-fifo-queue.yaml
-  
   OrderSequenceFIFOQueue:
     Type: 'AWS::SQS::Queue'
     Properties:

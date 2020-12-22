@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: VCS Total Loss Test Dynamo DB
+
+Parameters:
+  ApplicationID: {Default: total-loss, Type: String}
+  BizUnit: {Default: vcs, Type: String}
+  EnvType:
+    AllowedValues: [test, accept, prod]
+    ConstraintDescription: must be an acceptable environment type.
+    Default: test
+    Description: classification of the environment
+    Type: String
+    
+Resources:
+  totalLossTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      Tags:
+        - Key: BizUnit
+          Value: vcs
+        - Key: Project
+          Value: totalLossTable
+      TableName: 
+        Fn::Join:
+          - '-'
+          - - {Ref: BizUnit}
+            - {Ref: ApplicationID}
+            - {Ref: EnvType}
+            - 'db'
+      AttributeDefinitions:
+        - AttributeName: 'alertId'
+          AttributeType: 'S'
+        - AttributeName: 'claimSearchId'
+          AttributeType: 'S'
+        - AttributeName: 'lenderId'
+          AttributeType: 'S'
+        - AttributeName: 'isoDateReceived'
+          AttributeType: 'S'
+        - AttributeName: 'alertLastModifiedDate'
+          AttributeType: 'S'  
+      KeySchema:
+        - AttributeName: 'alertId'
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "lenderId-alertLastModifiedDate-index"
+          KeySchema:
+            -  
+              AttributeName: "lenderId"
+              KeyType: "HASH"
+            -
+              AttributeName: "alertLastModifiedDate"
+              KeyType: "RANGE"  
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "claimSearchId-isoDateReceived-index"
+          KeySchema:
+            -  
+              AttributeName: "claimSearchId"
+              KeyType: "HASH"
+            -
+              AttributeName: "isoDateReceived"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+  TotalLossTableReadScalingTarget:
+    Type: 'AWS::ApplicationAutoScaling::ScalableTarget'
+    Properties:
+      MaxCapacity: 100
+      MinCapacity: 5
+      ResourceId: !Join
+        - /
+        - - table
+          - !Ref totalLossTable
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable
+      ScalableDimension: "dynamodb:table:ReadCapacityUnits"
+      ServiceNamespace: dynamodb
+  TotalLossTableReadScalingPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Properties:
+      PolicyName: TotalLossTableReadScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref TotalLossTableReadScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization 
+  TotalLossTableIndexReadScalingTarget:
+    Type: 'AWS::ApplicationAutoScaling::ScalableTarget'
+    Properties:
+      MaxCapacity: 100
+      MinCapacity: 5
+      ResourceId: !Join
+        - /
+        - - table
+          - !Ref totalLossTable
+          - index
+          - lenderId-alertLastModifiedDate-index
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable
+      ScalableDimension: "dynamodb:index:ReadCapacityUnits"
+      ServiceNamespace: dynamodb
+  TotalLossTableIndexReadScalingPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Properties:
+      PolicyName: TotalLossTableReadScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref TotalLossTableIndexReadScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization 
